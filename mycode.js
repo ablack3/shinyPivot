@@ -6,11 +6,14 @@ $(document).ready(function() {
      //e = document.querySelector(".box");
      //e = document.querySelector(".ui-sortable-handle");
      const b = document.querySelectorAll("#source_vars div");
+     var click_counter = 0;
 
      function sendDataToShiny(clicked_button) {
           //var number = Math.random();
+          click_counter++;
           var val = clicked_button.getAttribute("data-value");
           Shiny.onInputChange("varname", val);
+          Shiny.onInputChange("click_counter", click_counter);
      }
      
      for (var i = 0, len = b.length; i < len; i++) {
