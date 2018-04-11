@@ -3,22 +3,18 @@ library(shiny)
 library(shinyjqui)
 
 ui <- shinyUI( bootstrapPage(
-     
-     # a div named mydiv
+
      tags$div(id="mydiv", class = "box", style="width: 50px; height :50px;
               left: 100px; top: 100px;
               background-color: gray; position: absolute"),
      
      verbatimTextOutput("results"),
-     orderInput("source_vars", "Variables", items = letters[1]),
+     orderInput("source_vars", "Variables", items = letters[1:3]),
      includeScript("mycode.js")
      ))
 
 server <- shinyServer(function(input, output, session) {
-
-     output$results = renderPrint({
-     input$mydata
-     })
+     output$results = renderPrint({input$mydata})
 
      # observes if value of mydata sent from the client changes.  if yes
      # generate a new random color string and send it back to the client

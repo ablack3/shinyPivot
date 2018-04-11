@@ -5,16 +5,19 @@ $(document).ready(function() {
     // e = document.getElementById("mydiv")
      //e = document.querySelector(".box");
      //e = document.querySelector(".ui-sortable-handle");
-     const b = document.querySelector("#source_vars div");
-     console.log(b.getAttribute("data-value"));
-     
-     function sendDataToShiny(b) {
+     const b = document.querySelectorAll("#source_vars div");
+
+     function sendDataToShiny(clicked_button) {
           //var number = Math.random();
-          var val = b.getAttribute("data-value");
+          var val = clicked_button.getAttribute("data-value");
           Shiny.onInputChange("mydata", val);
      }
      
-     b.addEventListener("click", function(){sendDataToShiny(this);}, false);
+     for (var i = 0, len = b.length; i < len; i++) {
+        b[i].addEventListener("click", function(){sendDataToShiny(this);}, false);
+    }     
+    
+     //b.addEventListener("click", function(){sendDataToShiny(this);}, false);
      
      // recieve data from shiny
      Shiny.addCustomMessageHandler("myCallbackHandler",
