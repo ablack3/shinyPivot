@@ -10,7 +10,7 @@ $(document).ready(function() {
      function sendDataToShiny(clicked_button) {
           //var number = Math.random();
           var val = clicked_button.getAttribute("data-value");
-          Shiny.onInputChange("mydata", val);
+          Shiny.onInputChange("varname", val);
      }
      
      for (var i = 0, len = b.length; i < len; i++) {
@@ -20,10 +20,8 @@ $(document).ready(function() {
      //b.addEventListener("click", function(){sendDataToShiny(this);}, false);
      
      // recieve data from shiny
-     Shiny.addCustomMessageHandler("myCallbackHandler",
-                                   function(color) {
-                                        b.style.backgroundColor = color;
-                                   }
+     Shiny.addCustomMessageHandler("myCallbackHandler", 
+          function(color) {b.style.backgroundColor = color;}
      );
      
 });
