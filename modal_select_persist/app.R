@@ -8,7 +8,7 @@ ui <- fluidPage(
 
 server <- function(input, output) {
      # selected_letters <- reactiveValues()
-     my_input <- reactive(selectInput("letters", "letters", selected = input[["letters"]], choices = letters, multiple = T))
+     my_input <- reactive(selectInput("letters", "letters", selected = input$letters, choices = letters, multiple = T))
      
      observeEvent(input$button, {
                # showModal(modalDialog(selectInput("letters", "letters", selected = selected_letters, choices = letters, multiple = T)))

@@ -2,32 +2,37 @@ library(shiny)
 library(shinyjqui)
 library(tidyverse)
 
-# create select boxes
-df <- data_frame(var = letters[1:3]) %>% 
-     mutate(input_box = map(letters[1:3], ~selectInput(.,., choices = letters, multiple = T)))
+
+df <- starwars %>% 
+     select_if(is.character)
+
 
 ui <- shinyUI( bootstrapPage(
-
      verbatimTextOutput("results"),
      verbatimTextOutput("results2"),
-     orderInput("source_vars", "Variables", items = letters[1:3]),
+     orderInput("source_vars", "Variables", items = names(df)),
      includeScript("mycode.js")
 ))
 
 
 server <- shinyServer(function(input, output, session) {
      output$results = renderPrint({input$varname})
-     output$results2 = renderPrint({input$click_counter})
-
+     output$results2 = renderPrint({input$a})
      
-     # need counter variable to trigger click event, event not triggered if same button is clicked > 1 time
+     pivot_vars <- df %>% 
+          summarise_all(n_distinct) %>% 
+          collect() %>% 
+          gather("field", "n_levels") %>% 
+          mutate(levels = map(pivot_vars$field, ~pull(distinct(select(df, .))))) %>% 
+          mutate(select_input = map2(pivot_vars$field, pivot_vars$levels, 
+                ~reactive(selectInput(.x, label = .x, choices = .y, selected = input[[.x]], multiple = T))))
+     
      observeEvent(input$click_counter, {
+          reactive_select <- pivot_vars[1,"select_input"]
                showModal(modalDialog(
-                    title = "Important message",
-                    selectInput("id","label", choices = letters, multiple = T),
-                    paste0("you clicked on ", input$varname)
+                    title = "Filter",
+                    pivot_vars$select_input[[match(input$varname, pivot_vars$field)]]()
                ))
-          # showModal(modalDialog(selectInput("a", choices = letters)))
           
           # color = rgb(runif(1), runif(1), runif(1))
           # session$sendCustomMessage(type = "myCallbackHandler", color)
