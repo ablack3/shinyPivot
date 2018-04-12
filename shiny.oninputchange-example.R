@@ -17,7 +17,12 @@ ui <- shinyUI( bootstrapPage(
 
 server <- shinyServer(function(input, output, session) {
      output$results = renderPrint({input$varname})
-     output$results2 = renderPrint({input$a})
+     # output$results2 = renderPrint({
+     #      req(pivot_vars$filtered[[varnum()]]())
+     #      pivot_vars$filtered[[varnum()]]()
+     # })
+     
+     varnum <- reactive(match(input$varname, pivot_vars$field))
      
      pivot_vars <- df %>% 
           summarise_all(n_distinct) %>% 
@@ -25,13 +30,15 @@ server <- shinyServer(function(input, output, session) {
           gather("field", "n_levels") %>% 
           mutate(levels = map(pivot_vars$field, ~pull(distinct(select(df, .))))) %>% 
           mutate(select_input = map2(pivot_vars$field, pivot_vars$levels, 
-                ~reactive(selectInput(.x, label = .x, choices = .y, selected = input[[.x]], multiple = T))))
+                ~reactive(selectInput(.x, label = .x, choices = c("All levels" = "", .y), selected = input[[.x]], multiple = T)))) %>% 
+          mutate(filtered = map(pivot_vars$field, ~reactive({length(input[[.x]]) > 0})))
      
      observeEvent(input$click_counter, {
-          reactive_select <- pivot_vars[1,"select_input"]
+          reactive_select <- pivot_vars[1, "select_input"]
                showModal(modalDialog(
                     title = "Filter",
-                    pivot_vars$select_input[[match(input$varname, pivot_vars$field)]]()
+                    pivot_vars$select_input[[varnum()]]()
+                    # pivot_vars$select_input[[match(input$varname, pivot_vars$field)]]()
                ))
           
           # color = rgb(runif(1), runif(1), runif(1))
