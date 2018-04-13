@@ -32,10 +32,20 @@ server <- shinyServer(function(input, output, session) {
 
      observeEvent(input$click_counter, {
           showModal(modalDialog(title = "Filter", pivot_vars$select_input[[varnum()]]()))
-          session$sendCustomMessage(type = "myCallbackHandler", input$varname)
+          
           # color = rgb(runif(1), runif(1), runif(1))
      })
           
+     observe({
+          for (i in 1:nrow(pivot_vars)) {
+               if(pivot_vars$filtered[[i]]() == TRUE){
+                    session$sendCustomMessage(type = "shade", pivot_vars$field[i]) 
+               } else {
+                    session$sendCustomMessage(type = "unshade", pivot_vars$field[i])  
+               }
+          }
+     })
+     
      output$results = renderPrint({input$varname})
      # output$results2 = renderPrint({
      #      req(pivot_vars$filtered[[varnum()]]())

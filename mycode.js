@@ -21,9 +21,25 @@ $(document).ready(function() {
     }     
     
     
-         Shiny.addCustomMessageHandler("myCallbackHandler", function(val) {
-             console.log(val);
-         });
+     Shiny.addCustomMessageHandler("shade", function(val) {
+              for (var i = 0, len = b.length; i < len; i++) { 
+               if (val == b[i].getAttribute("data-value")){
+                    b[i].style.backgroundColor = "#b6b8ba";
+               }  
+              }
+          }
+     );
+     
+     Shiny.addCustomMessageHandler("unshade", function(val) {
+              for (var i = 0, len = b.length; i < len; i++) { 
+               if (val == b[i].getAttribute("data-value")){
+                    b[i].style.backgroundColor = "#ffffff";
+               }  
+              }
+          }
+     );
+     
+     
      //b.addEventListener("click", function(){sendDataToShiny(this);}, false);
      
      // recieve data from shiny
