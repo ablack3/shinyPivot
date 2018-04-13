@@ -20,11 +20,14 @@ $(document).ready(function() {
         b[i].addEventListener("click", function(){sendDataToShiny(this);}, false);
     }     
     
+    
+         Shiny.addCustomMessageHandler("myCallbackHandler", function(val) {
+             console.log(val);
+         });
      //b.addEventListener("click", function(){sendDataToShiny(this);}, false);
      
      // recieve data from shiny
-     Shiny.addCustomMessageHandler("myCallbackHandler", 
-          function(color) {b.style.backgroundColor = color;}
-     );
+
+
      
 });
