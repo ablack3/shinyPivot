@@ -29,12 +29,12 @@ ui <- fluidPage(title = "R pivot table", includeScript("mycode.js"),
      ),
      fluidRow(column(12, wellPanel(orderInput("source_vars", "Variables", items = pivot_vars$field, connect = c("row_vars","col_vars"))))),
      fluidRow(
-          column(2, offset = 1, downloadButton("download_data")),
-          column(8, offset = 1, wellPanel(orderInput("col_vars", "Columns", items = NULL, placeholder = "Drag variables here", connect = c("source_vars","row_vars"))))
+          column(3, downloadButton("download_data")),
+          column(9, wellPanel(orderInput("col_vars", "Columns", items = NULL, placeholder = "Drag variables here", connect = c("source_vars","row_vars"))))
      ),
      fluidRow(
-          column(4, wellPanel(orderInput("row_vars","Rows", items = NULL, placeholder = "Drag variables here", connect = c("source_vars", "col_vars")))),
-          column(8, tags$div(style = "overflow:auto", dataTableOutput("table")))
+          column(3, wellPanel(orderInput("row_vars","Rows", items = NULL, placeholder = "Drag variables here", connect = c("source_vars", "col_vars")))),
+          column(9, tags$div(style = "overflow:auto", dataTableOutput("table")))
      )
 )
 
@@ -65,11 +65,6 @@ server <- function(input, output, session){
           }
      })
      
-     # filter before the summary right?
-     # yes because I want to allow filtering on variables that are not summary variables
-     # need to create the expression to go into filter(!!!filter_exprs)
-     # for each variable that is filtered create an expression
-     
      filter_expr <- reactive({
           # T/F indicators to select rows of filtered variables
           selector <- map_lgl(pivot_vars$filtered, ~.())
@@ -82,7 +77,6 @@ server <- function(input, output, session){
                mutate(selected_levels = map(field, ~input[[.]])) %>% 
                mutate(selected_levels = map(selected_levels, ~paste(.))) %>% 
                select(field, selected_levels)
-          # exp_builder
 
           map2(exp_builder$field, exp_builder$selected_levels, ~rlang::expr(!!as.name(.x) %in% !!.y)) %>%
                reduce(function(a,b) rlang::expr(!!a & !!b))
@@ -116,8 +110,9 @@ server <- function(input, output, session){
      output$debug_text2 <- renderText(input$col_vars_order)
      output$debug_text3 <- renderText("")
      output$download_data <- downloadHandler(
-          filename = function() paste0("data", Sys.Date(), ".csv"),
-          content = function(file) readr::write_csv(local_table, file)
+          filename = function() paste0("data_", Sys.Date(), ".csv"),
+          content = function(file) readr::write_csv(local_table(), file),
+          contentType = "text/csv"
      )
      
 } # end server
