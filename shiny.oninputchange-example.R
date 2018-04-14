@@ -31,7 +31,7 @@ server <- shinyServer(function(input, output, session) {
      varnum <- reactive(match(input$varname, pivot_vars$field))
 
      observeEvent(input$click_counter, {
-          showModal(modalDialog(title = "Filter", pivot_vars$select_input[[varnum()]]()))
+          showModal(modalDialog(easyClose = T, title = "Filter", pivot_vars$select_input[[varnum()]]()))
           
           # color = rgb(runif(1), runif(1), runif(1))
      })

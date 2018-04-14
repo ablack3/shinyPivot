@@ -1,37 +1,26 @@
 library(shiny)
 library(shinyjqui)
-library(wakefield)
-library(dplyr)
-library(tidyr)
+library(tidyverse)
+# library(wakefield)
 
-df <- wakefield::r_data_frame(1000, age, gender, coin)
+# inputs
+# df <- wakefield::r_data_frame(1000, age, gender, coin)
+df <- starwars %>% 
+     select_if(is.character)
+
 record_limit <- 1e6
 max_levels <- 1000
 
-table_vars <- colnames(df)
-
-# count number of distinct levels for each variable
-ndis <- df %>%
-     ungroup() %>% 
+#  
+pivot_vars <- df %>% 
      summarise_all(n_distinct) %>% 
-     collect()
-     
-pivot_vars <- ndis %>% 
-     gather("field", "n_distinct") %>% 
-     filter(n_distinct < max_levels)
-
-# get distinct levels for each pivot variable
-# pivot_vars object
-pivot_vars$levels <- purrr::map(pivot_vars$field, ~pull(distinct(select(df, .))))
-pivot_vars$selected_levels <- pivot_vars$levels
-pivot_vars$select_input <- purrr::map2(pivot_vars$field, pivot_vars$levels, ~selectizeInput(.x, label = .x, choices = .y, selected = .y))
-
-# need a way to update selected for each variable.
+     collect() %>% 
+     gather("field", "n_levels") %>% 
+     filter(n_levels < max_levels) %>% 
+     mutate(levels = map(field, ~pull(distinct(select(df, .))))) 
 
 
-ui <- fluidPage(title = "R pivot table", includeScript("app.js"), tabsetPanel(
-     tabPanel("Patients"),
-     tabPanel("Events",
+ui <- fluidPage(title = "R pivot table", includeScript("mycode.js"),
 
      fluidRow(
           column(4, textOutput("debug_text1")),
@@ -47,11 +36,35 @@ ui <- fluidPage(title = "R pivot table", includeScript("app.js"), tabsetPanel(
           column(4, wellPanel(orderInput("row_vars","Rows", items = NULL, placeholder = "Drag variables here", connect = c("source_vars", "col_vars")))),
           column(8, tags$div(style = "overflow:auto", dataTableOutput("table")))
      )
-     ) # end tab
-)) # end ui
+)
 
-
-server <- function(input, output){
+server <- function(input, output, session){
+     
+     # add reactive select inputs to pivot_vars df
+     pivot_vars <- pivot_vars %>% 
+          mutate(select_input = map2(field, levels, 
+               ~reactive(selectInput(.x, label = .x, choices = c("All levels" = "", .y), selected = input[[.x]], multiple = T)))) %>% 
+          mutate(filtered = map(field, ~reactive({length(input[[.x]]) > 0})))
+     
+     # which variable was click (as a number 1 to number of pivot vars)
+     varnum <- reactive(match(input$varname, pivot_vars$field))
+     
+     # open dialog box when clicked
+     observeEvent(input$click_counter, {
+          showModal(modalDialog(easyClose = T, title = "Filter", pivot_vars$select_input[[varnum()]]()))
+     })
+     
+     # update button colors based on filtering
+     observe({
+          for (i in 1:nrow(pivot_vars)) {
+               if(pivot_vars$filtered[[i]]() == TRUE){
+                    session$sendCustomMessage(type = "shade", pivot_vars$field[i]) 
+               } else {
+                    session$sendCustomMessage(type = "unshade", pivot_vars$field[i])  
+               }
+          }
+     })
+     
      
      filtered_data <- reactive({
           grp_vars <- rlang::parse_quosures(paste0(c(input$row_vars_order, input$col_vars_order), collapse = ";"))
