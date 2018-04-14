@@ -23,7 +23,7 @@ pivot_vars <- df %>%
 ui <- fluidPage(title = "R pivot table", includeScript("mycode.js"),
 
      fluidRow(
-          column(4, textOutput("debug_text1")),
+          column(4, verbatimTextOutput("debug_text1")),
           column(4, textOutput("debug_text2")),
           column(4, textOutput("debug_text3"))
      ),
@@ -65,10 +65,33 @@ server <- function(input, output, session){
           }
      })
      
+     # filter before the summary right?
+     # yes because I want to allow filtering on variables that are not summary variables
+     # need to create the expression to go into filter(!!!filter_exprs)
+     # for each variable that is filtered create an expression
+     
+     filter_expr <- reactive({
+          # T/F indicators to select rows of filtered variables
+          selector <- map_lgl(pivot_vars$filtered, ~.())
+          
+          # initially no variables will be filtered
+          if(all(!selector)) return(NULL)
+          
+          exp_builder <- pivot_vars %>% 
+               filter(selector) %>% 
+               mutate(selected_levels = map(field, ~input[[.]])) %>% 
+               mutate(selected_levels = map(selected_levels, ~paste(.))) %>% 
+               select(field, selected_levels)
+          # exp_builder
+
+          map2(exp_builder$field, exp_builder$selected_levels, ~rlang::expr(!!as.name(.x) %in% !!.y)) %>%
+               reduce(function(a,b) rlang::expr(!!a & !!b))
+     })
      
      filtered_data <- reactive({
           grp_vars <- rlang::parse_quosures(paste0(c(input$row_vars_order, input$col_vars_order), collapse = ";"))
         df %>% 
+          {if(!is.null(filter_expr)) filter(., !!!filter_expr()) else .} %>% # conditional pipe
           group_by(!!!grp_vars) %>% 
           summarise(n = n()) %>% 
           ungroup()
@@ -88,7 +111,7 @@ server <- function(input, output, session){
      })
      
      output$table <- renderDataTable(local_table())
-     output$debug_text1 <- renderPrint(input$mydata)
+     output$debug_text1 <- renderPrint(filter_expr())
      # output$debug_text1 <- renderPrint({paste(input$row_vars_order, collapse = ";")})
      output$debug_text2 <- renderText(input$col_vars_order)
      output$debug_text3 <- renderText("")

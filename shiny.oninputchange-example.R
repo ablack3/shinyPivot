@@ -21,7 +21,7 @@ ui <- shinyUI(bootstrapPage(
 ))
 
 server <- shinyServer(function(input, output, session) {
-
+     # add reactive columns to tibble
      pivot_vars <- pivot_vars %>% 
           mutate(select_input = map2(field, levels, 
                 ~reactive(selectInput(.x, label = .x, choices = c("All levels" = "", .y), selected = input[[.x]], multiple = T)))) %>% 
