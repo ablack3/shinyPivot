@@ -10,6 +10,7 @@ df <- starwars %>%
 
 pivot_vars <- get_pivot_vars(df)
 
+
 ui <- fluidPage(title = "R pivot table", 
      shiny_pivot_module_UI(id = "id", pivot_vars = pivot_vars)
 )
