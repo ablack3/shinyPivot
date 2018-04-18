@@ -60,7 +60,8 @@ shiny_pivot_module_UI <- function(id, pivot_vars){
                                                         
                     }});'))),
                 
-                fluidRow(column(4, verbatimTextOutput(ns("debug_text")))),
+                # fluidRow(column(4, verbatimTextOutput(ns("debug_text")))),
+                fluidRow(column(4, tags$div(style = "color: red", textOutput(ns("warn_text"))))),
                 fluidRow(column(12, wellPanel(
                      orderInput(ns("source_vars"), "Variables", items = pivot_vars$field, connect = c(ns("row_vars"), ns("col_vars")))
                 ))),
@@ -123,10 +124,13 @@ shiny_pivot_module <- function(input, output, session, ns_id, df, pivot_vars, re
                ungroup()
      })
 
+     
+     
      # also need to add warning for exceeding row limit
      local_table <- reactive({
           filtered_data() %>%
-               filter(between(row_number(), 1, record_limit)) %>%
+               head(record_limit) %>% 
+               # filter(between(row_number(), 1, record_limit)) %>%
                collect() %>%
                mutate_if(~class(.) == "integer64", as.numeric) %>%
                {
@@ -148,9 +152,14 @@ shiny_pivot_module <- function(input, output, session, ns_id, df, pivot_vars, re
                }
           }
      })
+     
+     output$warn_text <- renderText({
+          if(nrow(local_table()) == record_limit){
+               return(glue::glue("Warning: Only showing first {record_limit} rows."))
+          } else return(NULL)
+     })
 
      output$table <- renderDataTable(local_table())
-     # output$debug_text <- renderPrint(varnum())
      output$debug_text <- renderPrint(NULL)
      output$download_data <- downloadHandler(
           filename = function() paste0("data_", Sys.Date(), ".csv"),
