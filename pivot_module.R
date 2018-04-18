@@ -10,7 +10,7 @@ get_pivot_vars <- function(df, max_levels = 1000){
 }
 
 
-shiny_pivot_module_UI <- function(id, pivot_vars){
+pivot_module_UI <- function(id, pivot_vars){
      ns <- NS(id)
      nsq <- function(.) glue::glue('"{ns(.)}"')
      
@@ -74,8 +74,7 @@ shiny_pivot_module_UI <- function(id, pivot_vars){
      )
 }
 
-shiny_pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_limit = 1e6){
-     
+pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_limit = 1e6){
      ns <- NS(ns_id)
      # add reactive values to the pivot vars tibble in a list column. 
      # One select input and one T/F filtered indicator per pivot variable.
