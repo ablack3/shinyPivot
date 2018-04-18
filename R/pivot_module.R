@@ -8,6 +8,17 @@
 #' @import dplyr
 #' @importFrom magrittr %>%
 #' @examples
+#' # local table
+#' df1 <- starwars %>%
+#'      select_if(is.character)
+#' pivot_vars1 <- get_pivot_vars(df1)
+#'
+#' # using a database
+#' con <- DBI::dbConnect(RSQLite::SQLite(), path = ":memory:")
+#' copy_to(con, df1, "star_wars")
+#' df2 <- tbl(con, "star_wars")
+#' pivot_vars2 <- get_pivot_vars(df2)
+#'
 get_pivot_vars <- function(df, max_levels = 1000){
      df %>%
      summarise_all(n_distinct) %>%
@@ -25,6 +36,10 @@ get_pivot_vars <- function(df, max_levels = 1000){
 #'
 #' @return A tag list containing the UI elements for a pivot table module
 #' @export
+#' @examples
+#' ui <- fluidPage(
+#'       pivot_module_UI(id = "id1", pivot_vars = my_pivot_vars)
+#' )
 pivot_module_UI <- function(id, pivot_vars){
      ns <- NS(id)
      nsq <- function(.) glue::glue('"{ns(.)}"')

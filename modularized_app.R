@@ -1,11 +1,8 @@
 library(shiny)
-library(dplyr)
-# library(shinyjqui)
-# library(tidyverse)
-# source("pivot_module.R")
 options(shiny.reactlog=T) # command f3 + right arrow
 
 # local table
+library(dplyr)
 df1 <- starwars %>%
      select_if(is.character)
 
@@ -21,7 +18,7 @@ pivot_vars2 <- get_pivot_vars(df2)
 
 
 
-ui <- fluidPage(title = "R pivot table",
+ui <- fluidPage(title = "R pivot table", #theme = shinythemes::shinytheme("superhero"),
      tabsetPanel(
           tabPanel(   "Local pivot", pivot_module_UI(id = "id1", pivot_vars = pivot_vars1)),
           tabPanel("Database pivot", pivot_module_UI(id = "id2", pivot_vars = pivot_vars2))
@@ -36,8 +33,6 @@ server <- function(input, output, session){
 shinyApp(ui = ui, server = server)
 
 # linked pivot table idea?
-# also need to fix shading.
-# does not seem to be working right.
 
 
 

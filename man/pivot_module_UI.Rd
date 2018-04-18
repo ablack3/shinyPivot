@@ -17,3 +17,8 @@ A tag list containing the UI elements for a pivot table module
 \description{
 Generate the UI for a pivot table
 }
+\examples{
+ui <- fluidPage(
+      pivot_module_UI(id = "id1", pivot_vars = my_pivot_vars)
+)
+}
