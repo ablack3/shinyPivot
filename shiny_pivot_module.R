@@ -1,6 +1,4 @@
-library(shiny)
-library(shinyjqui)
-library(tidyverse)
+
 
 get_pivot_vars <- function(df, max_levels = 1000){
      df %>% 
@@ -63,14 +61,14 @@ shiny_pivot_module_UI <- function(id, pivot_vars){
                 # fluidRow(column(4, verbatimTextOutput(ns("debug_text")))),
                 fluidRow(column(4, tags$div(style = "color: red", textOutput(ns("warn_text"))))),
                 fluidRow(column(12, wellPanel(
-                     orderInput(ns("source_vars"), "Variables", items = pivot_vars$field, connect = c(ns("row_vars"), ns("col_vars")))
+                     shinyjqui::orderInput(ns("source_vars"), "Variables", items = pivot_vars$field, connect = c(ns("row_vars"), ns("col_vars")))
                 ))),
                 fluidRow(
                      column(3, downloadButton(ns("download_data"))),
-                     column(9, wellPanel(orderInput(ns("col_vars"), "Columns", items = NULL, placeholder = "Drag variables here", connect = c(ns("source_vars"), ns("row_vars")))))
+                     column(9, wellPanel(shinyjqui::orderInput(ns("col_vars"), "Columns", items = NULL, placeholder = "Drag variables here", connect = c(ns("source_vars"), ns("row_vars")))))
                 ),
                 fluidRow(
-                     column(3, wellPanel(orderInput(ns("row_vars"), "Rows", items = NULL, placeholder = "Drag variables here", connect = c(ns("source_vars"), ns("col_vars"))))),
+                     column(3, wellPanel(shinyjqui::orderInput(ns("row_vars"), "Rows", items = NULL, placeholder = "Drag variables here", connect = c(ns("source_vars"), ns("col_vars"))))),
                      column(9, tags$div(style = "overflow:auto", dataTableOutput(ns("table"))))
                 )
      )
@@ -83,7 +81,7 @@ shiny_pivot_module <- function(input, output, session, ns_id, df, pivot_vars, re
      # One select input and one T/F filtered indicator per pivot variable.
      # Need to add namespace to any newly created input ids. Use ns() when defining new input id
      pivot_vars <- pivot_vars %>%
-          mutate(select_input = map2(field, levels,
+          mutate(select_input = purrr::map2(field, levels,
                ~reactive(selectInput(ns(.x), label = .x, choices = c("All levels" = "", .y), selected = input[[.x]], multiple = T)))) %>%
           mutate(filtered = purrr::map(field, ~reactive({length(input[[.x]]) > 0})))
 
@@ -99,19 +97,19 @@ shiny_pivot_module <- function(input, output, session, ns_id, df, pivot_vars, re
 
      filter_expr <- reactive({
           # T/F indicators to select rows of filtered variables
-          selector <- map_lgl(pivot_vars$filtered, ~.())
+          selector <- purrr::map_lgl(pivot_vars$filtered, ~.())
 
           # initially no variables will be filtered
           if(all(!selector)) return(NULL)
 
           exp_builder <- pivot_vars %>%
                filter(selector) %>%
-               mutate(selected_levels = map(field, ~input[[.]])) %>%
-               mutate(selected_levels = map(selected_levels, ~paste(.))) %>%
+               mutate(selected_levels = purrr::map(field, ~input[[.]])) %>%
+               mutate(selected_levels = purrr::map(selected_levels, ~paste(.))) %>%
                select(field, selected_levels)
 
-          map2(exp_builder$field, exp_builder$selected_levels, ~rlang::expr(!!as.name(.x) %in% !!.y)) %>%
-               reduce(function(a,b) rlang::expr(!!a & !!b))
+          purrr::map2(exp_builder$field, exp_builder$selected_levels, ~rlang::expr(!!as.name(.x) %in% !!.y)) %>%
+               purrr::reduce(function(a,b) rlang::expr(!!a & !!b))
      })
 
      # maybe use event reactive and update button

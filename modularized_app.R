@@ -1,12 +1,13 @@
 library(shiny)
-library(shinyjqui)
-library(tidyverse)
+library(dplyr)
+# library(shinyjqui)
+# library(tidyverse)
 source("shiny_pivot_module.R")
 
 options(shiny.reactlog=T) # command f3 + right arrow
 
 # local table
-df <- starwars %>%
+df1 <- starwars %>%
      select_if(is.character)
 
 
@@ -15,20 +16,25 @@ df <- starwars %>%
 con <- DBI::dbConnect(RSQLite::SQLite(), path = ":memory:")
 # con <-  DBI::dbConnect(RPostgreSQL::PostgreSQL(), user="adamblack", password="",
                        # host="localhost", port=5432, dbname="test")
-copy_to(con, df, "star_wars")
-df <- tbl(con, "star_wars")
+copy_to(con, df1, "star_wars")
+df2 <- tbl(con, "star_wars")
 
-pivot_vars <- get_pivot_vars(df)
+pivot_vars1 <- get_pivot_vars(df1)
+pivot_vars2 <- get_pivot_vars(df2)
 
 
 
 ui <- fluidPage(title = "R pivot table", 
-     shiny_pivot_module_UI(id = "id", pivot_vars = pivot_vars)
+     tabsetPanel(
+          tabPanel(   "Local pivot", shiny_pivot_module_UI(id = "id1", pivot_vars = pivot_vars1)),
+          tabPanel("Database pivot", shiny_pivot_module_UI(id = "id2", pivot_vars = pivot_vars2))
+     )
 )
 
 
 server <- function(input, output, session){
-     callModule(shiny_pivot_module, "id", ns_id = "id", df = df, pivot_vars = pivot_vars, record_limit = 20)     
+     callModule(shiny_pivot_module, id = "id1", ns_id = "id1", df = df1, pivot_vars = pivot_vars1, record_limit = 20)     
+     callModule(shiny_pivot_module, id = "id2", ns_id = "id2", df = df2, pivot_vars = pivot_vars2, record_limit = 30)     
 } # end server
 
 shinyApp(ui = ui, server = server)
