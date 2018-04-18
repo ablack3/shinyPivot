@@ -13,11 +13,12 @@ The package contains three functions
 
 The user should be familiar with shiny modules. https://shiny.rstudio.com/articles/modules.html
 
+A simple example app looks like this.
 ```
 library(shiny)
+library(dplyr)
 
 # local table
-library(dplyr)
 df1 <- starwars %>%
      select_if(is.character)
 
@@ -37,8 +38,8 @@ ui <- fluidPage(title = "R pivot table",
 )
 
 server <- function(input, output, session){
-     callModule(pivot_module, id = "id1", ns_id = "id1", df = df1, pivot_vars = pivot_vars1, record_limit = 20)
-     callModule(pivot_module, id = "id2", ns_id = "id2", df = df2, pivot_vars = pivot_vars2, record_limit = 30)
+     callModule(pivot_module, id = "id1", ns_id = "id1", df = df1, pivot_vars = pivot_vars1)
+     callModule(pivot_module, id = "id2", ns_id = "id2", df = df2, pivot_vars = pivot_vars2)
 } 
 
 shinyApp(ui = ui, server = server)
