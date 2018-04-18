@@ -2,7 +2,7 @@ library(shiny)
 library(dplyr)
 # library(shinyjqui)
 # library(tidyverse)
-source("pivot_module.R")
+# source("pivot_module.R")
 options(shiny.reactlog=T) # command f3 + right arrow
 
 # local table
@@ -21,7 +21,7 @@ pivot_vars2 <- get_pivot_vars(df2)
 
 
 
-ui <- fluidPage(title = "R pivot table", 
+ui <- fluidPage(title = "R pivot table",
      tabsetPanel(
           tabPanel(   "Local pivot", pivot_module_UI(id = "id1", pivot_vars = pivot_vars1)),
           tabPanel("Database pivot", pivot_module_UI(id = "id2", pivot_vars = pivot_vars2))
@@ -29,8 +29,8 @@ ui <- fluidPage(title = "R pivot table",
 )
 
 server <- function(input, output, session){
-     callModule(pivot_module, id = "id1", ns_id = "id1", df = df1, pivot_vars = pivot_vars1, record_limit = 20)     
-     callModule(pivot_module, id = "id2", ns_id = "id2", df = df2, pivot_vars = pivot_vars2, record_limit = 30)     
+     callModule(pivot_module, id = "id1", ns_id = "id1", df = df1, pivot_vars = pivot_vars1, record_limit = 20)
+     callModule(pivot_module, id = "id2", ns_id = "id2", df = df2, pivot_vars = pivot_vars2, record_limit = 30)
 } # end server
 
 shinyApp(ui = ui, server = server)

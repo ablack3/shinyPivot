@@ -1,63 +1,79 @@
-
-
+#' Create a table with one row per pivot variable
+#'
+#' @param df A local dataframe or tbl_dbi database table
+#' @param max_levels The maximum number of levels a pivot variable is allowed to have.
+#'
+#' @return A tibble with one row per pivot variable with the variable's name, number of levels, and a list column containing the levels.
+#' @export
+#' @import dplyr
+#' @importFrom magrittr %>%
+#' @examples
 get_pivot_vars <- function(df, max_levels = 1000){
-     df %>% 
-     summarise_all(n_distinct) %>% 
-     collect() %>% 
-     tidyr::gather("field", "n_levels") %>% 
-     filter(n_levels < max_levels) %>% 
-     mutate(levels = purrr::map(field, ~pull(distinct(select(df, .))))) 
+     df %>%
+     summarise_all(n_distinct) %>%
+     collect() %>%
+     tidyr::gather("field", "n_levels") %>%
+     filter(n_levels < max_levels) %>%
+     mutate(levels = purrr::map(field, ~pull(distinct(select(df, .)))))
 }
 
 
+#' Generate the UI for a pivot table
+#'
+#' @param id The namespace id as a string. Can be anything but must match the corresponding namespace id of pivot_module.
+#' @param pivot_vars A tibble created by get_pivot_vars()
+#'
+#' @return A tag list containing the UI elements for a pivot table module
+#' @export
 pivot_module_UI <- function(id, pivot_vars){
      ns <- NS(id)
      nsq <- function(.) glue::glue('"{ns(.)}"')
-     
+
      tagList(
                tags$script(HTML(glue::glue('
                      $(document).ready(function() {{
-     
-                     const b = document.querySelectorAll("#{ns("source_vars")} div");
+
+                     const {id}_b = document.querySelectorAll("#{ns("source_vars")} div");
                      console.log("#{ns("source_vars")} div")
-                     console.log(b);
-                     console.log("b.length is " + b.length)
+                     console.log({id}_b);
+                     console.log("{id}_b.length is " + {id}_b.length)
                      var click_counter = 0;
-                     
+
                      function sendDataToShiny(clicked_button) {{
                           click_counter++;
                           var val = clicked_button.getAttribute("data-value");
-                          console.log("you clicked " + val + " and click_counter is " + click_counter);
+                          //console.log("you clicked " + val + " and click_counter is " + click_counter);
                           Shiny.onInputChange({nsq("varname")}, val);
                           Shiny.onInputChange({nsq("click_counter")}, click_counter);
                      }}
-                     
-                     for (var i = 0; i < b.length; i++) {{
-                          b[i].addEventListener("click", function(){{
+
+                     for (var i = 0; i < {id}_b.length; i++) {{
+                          {id}_b[i].addEventListener("click", function(){{
                               //console.log("you clicked " + this.getAttribute("data-value"));
                               sendDataToShiny(this);
-                                   
+
                          }}, false);
-                     }}     
-                     
-                     Shiny.addCustomMessageHandler("shade", function (val) {{
-                          for (var i = 0; i < b.length; i++) {{ 
-                               if (val == b[i].getAttribute("data-value")){{
-                                    b[i].style.backgroundColor = "#b6b8ba";
-                               }}  
+                     }}
+
+                     Shiny.addCustomMessageHandler("{id}_shade", function (val) {{
+                         //console.log("recieved " + val)
+                          for (var i = 0; i < {id}_b.length; i++) {{
+                               if (val == {id}_b[i].getAttribute("data-value")){{
+                                    {id}_b[i].style.backgroundColor = "#b6b8ba";
+                               }}
                           }}
                      }});
-                     
-                     Shiny.addCustomMessageHandler("unshade", function (val) {{
-                          for (var i = 0, len = b.length; i < len; i++) {{ 
-                               if (val == b[i].getAttribute("data-value")){{
-                                    b[i].style.backgroundColor = "#ffffff";
-                               }}  
+
+                     Shiny.addCustomMessageHandler("{id}_unshade", function (val) {{
+                          for (var i = 0, len = {id}_b.length; i < len; i++) {{
+                               if (val == {id}_b[i].getAttribute("data-value")){{
+                                    {id}_b[i].style.backgroundColor = "#ffffff";
+                               }}
                           }}
                      }});
-                                                        
+
                     }});'))),
-                
+
                 # fluidRow(column(4, verbatimTextOutput(ns("debug_text")))),
                 fluidRow(column(4, tags$div(style = "color: red", textOutput(ns("warn_text"))))),
                 fluidRow(column(12, wellPanel(
@@ -74,9 +90,30 @@ pivot_module_UI <- function(id, pivot_vars){
      )
 }
 
+#' The server function for a pivot table module
+#'
+#' This function should be passed to callModule. See example.
+#'
+#' @param input A standard argument used by shiny when creating the module.
+#' @param output A standard argument used by shiny when creating the module.
+#' @param session A standard argument used by shiny when creating the module.
+#' @param ns_id The module namespace id as a string. Must match a namespace id of the corresponding UI module element.
+#' @param df A local dataframe/tibble or tbl_dbi database connection object.
+#' @param pivot_vars A table constructed using the get_pivot_vars function.
+#' @param record_limit The maximum number of rows to bring into R to display. This is a saftely measure. You probably don't want to bring 100 million rows of data into R from a database. Defaults to 1 million.
+#'
+#' @return The server function needed for a pivot table module.
+#' @export
+#'
+#' @examples
+#'  # note that the namespace id must
+#' server <- function(input, output, session){
+#'    callModule(pivot_module, id = "id1", ns_id = "id1", df = df1, pivot_vars = pivot_vars1, record_limit = 20)
+#' }
+#'
 pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_limit = 1e6){
      ns <- NS(ns_id)
-     # add reactive values to the pivot vars tibble in a list column. 
+     # add reactive values to the pivot vars tibble in a list column.
      # One select input and one T/F filtered indicator per pivot variable.
      # Need to add namespace to any newly created input ids. Use ns() when defining new input id
      pivot_vars <- pivot_vars %>%
@@ -84,7 +121,7 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
                ~reactive(selectInput(ns(.x), label = .x, choices = c("All levels" = "", .y), selected = input[[.x]], multiple = T)))) %>%
           mutate(filtered = purrr::map(field, ~reactive({length(input[[.x]]) > 0})))
 
-     print(pivot_vars)
+     # print(pivot_vars)
      # which variable was clicked? (represented as a number from 1 to number of pivot vars)
      varnum <- reactive(match(input$varname, pivot_vars$field))
 
@@ -115,18 +152,18 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
      filtered_data <- reactive({
           grp_vars <- rlang::parse_quosures(paste0(c(input$row_vars_order, input$col_vars_order), collapse = ";"))
           df %>%
-          {if(!is.null(filter_expr)) filter(., !!!filter_expr()) else .} %>% # conditional pipe
+               {if(!is.null(filter_expr)) filter(., !!!filter_expr()) else .} %>% # conditional pipe
                group_by(!!!grp_vars) %>%
                summarise(n = n()) %>%
                ungroup()
      })
 
-     
-     
+
+
      # also need to add warning for exceeding row limit
      local_table <- reactive({
           filtered_data() %>%
-               head(record_limit) %>% 
+               head(record_limit) %>%
                # filter(between(row_number(), 1, record_limit)) %>%
                collect() %>%
                mutate_if(~class(.) == "integer64", as.numeric) %>%
@@ -143,13 +180,14 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
      observe({
           for (i in 1:nrow(pivot_vars)) {
                if(pivot_vars$filtered[[i]]() == TRUE){
-                    session$sendCustomMessage(type = "shade", pivot_vars$field[i])
+                    # print(paste("sending ", pivot_vars$field[i]))
+                    session$sendCustomMessage(type = paste0(ns_id, "_shade"), pivot_vars$field[i])
                } else {
-                    session$sendCustomMessage(type = "unshade", pivot_vars$field[i])
+                    session$sendCustomMessage(type = paste0(ns_id, "_unshade"), pivot_vars$field[i])
                }
           }
      })
-     
+
      output$warn_text <- renderText({
           if(nrow(local_table()) == record_limit){
                return(glue::glue("Warning: Only showing first {record_limit} rows."))
