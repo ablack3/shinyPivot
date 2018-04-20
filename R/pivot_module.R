@@ -33,6 +33,7 @@ get_pivot_vars <- function(df, max_levels = 1000){
 #'
 #' @param id The namespace id as a string. Can be anything but must match the corresponding namespace id of pivot_module.
 #' @param pivot_vars A tibble created by get_pivot_vars()
+#' @param sum_vars A character vector contiaining the names of numeric variables in the data to summarise by.
 #'
 #' @return A tag list containing the UI elements for a pivot table module
 #' @export
@@ -40,7 +41,7 @@ get_pivot_vars <- function(df, max_levels = 1000){
 #' ui <- fluidPage(
 #'       pivot_module_UI(id = "id1", pivot_vars = my_pivot_vars)
 #' )
-pivot_module_UI <- function(id, pivot_vars){
+pivot_module_UI <- function(id, pivot_vars, sum_vars){
      ns <- NS(id)
      nsq <- function(.) glue::glue('"{ns(.)}"')
 
@@ -91,11 +92,13 @@ pivot_module_UI <- function(id, pivot_vars){
 
                 # fluidRow(column(4, verbatimTextOutput(ns("debug_text")))),
                 fluidRow(column(4, tags$div(style = "color: red", textOutput(ns("warn_text"))))),
+                fluidRow(column(4, verbatimTextOutput(ns("debug_text")))),
                 fluidRow(column(12, wellPanel(
                      shinyjqui::orderInput(ns("source_vars"), "Variables", items = pivot_vars$field, connect = c(ns("row_vars"), ns("col_vars")))
                 ))),
                 fluidRow(
-                     column(3, downloadButton(ns("download_data"))),
+                     column(2, downloadButton(ns("download_data"))),
+                     column(1, selectInput(ns("summary_var"), "Summary variable", choices = c("Count", sum_vars), selected = "Count")),
                      column(9, wellPanel(shinyjqui::orderInput(ns("col_vars"), "Columns", items = NULL, placeholder = "Drag variables here", connect = c(ns("source_vars"), ns("row_vars")))))
                 ),
                 fluidRow(
@@ -146,6 +149,7 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
      })
 
 
+
      filter_expr <- reactive({
           # T/F indicators to select rows of filtered variables
           selector <- purrr::map_lgl(pivot_vars$filtered, ~.())
@@ -169,7 +173,8 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
           df %>%
                {if(!is.null(filter_expr)) filter(., !!!filter_expr()) else .} %>% # conditional pipe
                group_by(!!!grp_vars) %>%
-               summarise(n = n()) %>%
+               # another conditional pipe to do the summarization
+               {if(input$summary_var == "Count") summarise(., n = n()) else summarise(., n = sum(!!as.name(input$summary_var), na.rm = T))} %>%
                ungroup()
      })
 
@@ -210,7 +215,7 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
      })
 
      output$table <- renderDataTable(local_table())
-     output$debug_text <- renderPrint(NULL)
+     output$debug_text <- renderPrint(input$summary_var)
      output$download_data <- downloadHandler(
           filename = function() paste0("data_", Sys.Date(), ".csv"),
           content = function(file) readr::write_csv(local_table(), file),

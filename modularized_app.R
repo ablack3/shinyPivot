@@ -4,7 +4,8 @@ options(shiny.reactlog=T) # command f3 + right arrow
 # local table
 library(dplyr)
 df1 <- starwars %>%
-     select_if(is.character)
+     select_if(~is.character(.)|is.numeric(.))
+
 
 # using a database
 con <- DBI::dbConnect(RSQLite::SQLite(), path = ":memory:")
@@ -16,12 +17,12 @@ df2 <- tbl(con, "star_wars")
 pivot_vars1 <- get_pivot_vars(df1)
 pivot_vars2 <- get_pivot_vars(df2)
 
-
+sum_vars <- c("height", "mass")
 
 ui <- fluidPage(title = "R pivot table", #theme = shinythemes::shinytheme("superhero"),
      tabsetPanel(
-          tabPanel(   "Local pivot", pivot_module_UI(id = "id1", pivot_vars = pivot_vars1)),
-          tabPanel("Database pivot", pivot_module_UI(id = "id2", pivot_vars = pivot_vars2))
+          tabPanel(   "Local pivot", pivot_module_UI(id = "id1", pivot_vars = pivot_vars1, sum_vars = sum_vars)),
+          tabPanel("Database pivot", pivot_module_UI(id = "id2", pivot_vars = pivot_vars2, sum_vars = sum_vars[1]))
      )
 )
 
