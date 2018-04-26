@@ -4,12 +4,14 @@
 \alias{pivot_module_UI}
 \title{Generate the UI for a pivot table}
 \usage{
-pivot_module_UI(id, pivot_vars)
+pivot_module_UI(id, pivot_vars, sum_vars)
 }
 \arguments{
 \item{id}{The namespace id as a string. Can be anything but must match the corresponding namespace id of pivot_module.}
 
 \item{pivot_vars}{A tibble created by get_pivot_vars()}
+
+\item{sum_vars}{A character vector contiaining the names of numeric variables in the data to summarise by.}
 }
 \value{
 A tag list containing the UI elements for a pivot table module

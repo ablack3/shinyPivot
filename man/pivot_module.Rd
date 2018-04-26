@@ -5,7 +5,7 @@
 \title{The server function for a pivot table module}
 \usage{
 pivot_module(input, output, session, ns_id, df, pivot_vars,
-  record_limit = 1e+06)
+  record_limit = 1e+06, join_table = NULL, join_by = NA)
 }
 \arguments{
 \item{input}{A standard argument used by shiny when creating the module.}

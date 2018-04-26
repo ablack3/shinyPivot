@@ -41,7 +41,7 @@ get_pivot_vars <- function(df, max_levels = 1000){
 #' ui <- fluidPage(
 #'       pivot_module_UI(id = "id1", pivot_vars = my_pivot_vars)
 #' )
-pivot_module_UI <- function(id, pivot_vars, sum_vars){
+pivot_module_UI <- function(id, pivot_vars, sum_vars = ""){
      ns <- NS(id)
      nsq <- function(.) glue::glue('"{ns(.)}"')
 
@@ -129,7 +129,7 @@ pivot_module_UI <- function(id, pivot_vars, sum_vars){
 #'    callModule(pivot_module, id = "id1", ns_id = "id1", df = df1, pivot_vars = pivot_vars1, record_limit = 20)
 #' }
 #'
-pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_limit = 1e6){
+pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_limit = 1e6, join_table = NULL, join_by = NA){
      ns <- NS(ns_id)
      # add reactive values to the pivot vars tibble in a list column.
      # One select input and one T/F filtered indicator per pivot variable.
@@ -143,12 +143,12 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
      # which variable was clicked? (represented as a number from 1 to number of pivot vars)
      varnum <- reactive(match(input$varname, pivot_vars$field))
 
+     # observe(collect(join_table()) %>% head() %>% print())
+
      # # open dialog box when clicked
      observeEvent(input$click_counter, {
           showModal(modalDialog(easyClose = T, title = "Filter", pivot_vars$select_input[[varnum()]]()))
      })
-
-
 
      filter_expr <- reactive({
           # T/F indicators to select rows of filtered variables
@@ -167,24 +167,27 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
                purrr::reduce(function(a,b) rlang::expr(!!a & !!b))
      })
 
+
      # maybe use event reactive and update button
      filtered_data <- reactive({
-          grp_vars <- rlang::parse_quosures(paste0(c(input$row_vars_order, input$col_vars_order), collapse = ";"))
           df %>%
-               {if(!is.null(filter_expr)) filter(., !!!filter_expr()) else .} %>% # conditional pipe
+               {if(!is.null(filter_expr)) filter(., !!!filter_expr()) else .} %>%  # conditional pipe
+               {if(!is.null(join_table) & !is.na(join_by)) semi_join(., join_table(), by = join_by) else .}
+     })
+
+     summarised_data <- reactive({
+          grp_vars <- rlang::parse_quosures(paste0(c(input$row_vars_order, input$col_vars_order), collapse = ";"))
+          filtered_data() %>%
                group_by(!!!grp_vars) %>%
                # another conditional pipe to do the summarization
                {if(input$summary_var == "Count") summarise(., n = n()) else summarise(., n = sum(!!as.name(input$summary_var), na.rm = T))} %>%
                ungroup()
      })
 
-
-
-     # also need to add warning for exceeding row limit
      local_table <- reactive({
-          filtered_data() %>%
+          summarised_data() %>%
                head(record_limit) %>%
-               # filter(between(row_number(), 1, record_limit)) %>%
+               # # filter(between(row_number(), 1, record_limit)) %>%
                collect() %>%
                mutate_if(~class(.) == "integer64", as.numeric) %>%
                {
@@ -221,6 +224,7 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
           content = function(file) readr::write_csv(local_table(), file),
           contentType = "text/csv"
      )
+     return(filtered_data)
 } # end server
 
 
