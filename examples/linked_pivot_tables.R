@@ -35,7 +35,7 @@ ui <- fluidPage(title = "R pivot table", #theme = shinythemes::shinytheme("super
 
 server <- function(input, output, session){
      tbl_df1 <- callModule(pivot_module, id = "id1", ns_id = "id1", df = df1, pivot_vars = pivot_vars1)
-            callModule(pivot_module, id = "id2", ns_id = "id2", df = df2, pivot_vars = pivot_vars2, join_table = tbl_df1, join_by = "ID")
+                callModule(pivot_module, id = "id2", ns_id = "id2", df = df2, pivot_vars = pivot_vars2, join_table = tbl_df1, join_by = "ID")
      }
 
 shinyApp(ui = ui, server = server)

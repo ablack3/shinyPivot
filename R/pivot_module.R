@@ -90,20 +90,22 @@ pivot_module_UI <- function(id, pivot_vars, sum_vars = ""){
 
                     }});'))),
 
-                # fluidRow(column(4, verbatimTextOutput(ns("debug_text")))),
+                # fluidRow(column(4, verbatimTextOutput(ns("debug_text")))), # Used for debugging
                 fluidRow(column(4, tags$div(style = "color: red", textOutput(ns("warn_text"))))),
-                fluidRow(column(4, verbatimTextOutput(ns("debug_text")))),
                 fluidRow(column(12, wellPanel(
-                     shinyjqui::orderInput(ns("source_vars"), "Variables", items = pivot_vars$field, connect = c(ns("row_vars"), ns("col_vars")))
+                     shinyjqui::orderInput(ns("source_vars"), "Variables", items = pivot_vars$field, width = "100%", connect = c(ns("row_vars"), ns("col_vars")))
                 ))),
                 fluidRow(
-                     column(2, downloadButton(ns("download_data"))),
-                     column(1, selectInput(ns("summary_var"), "Summary variable", choices = c("Count", sum_vars), selected = "Count")),
-                     column(9, wellPanel(shinyjqui::orderInput(ns("col_vars"), "Columns", items = NULL, placeholder = "Drag variables here", connect = c(ns("source_vars"), ns("row_vars")))))
+                     column(3,
+                            fluidRow(column(6, actionButton(ns("refresh"), "Refresh")),
+                                     column(6, downloadButton(ns("download_data")))),
+                            fluidRow(column(12, selectInput(ns("summary_var"), "Summarise by:", choices = c("Count", sum_vars), selected = "Count")))
+                     ),
+                     column(9, wellPanel(shinyjqui::orderInput(ns("col_vars"), "Columns", items = NULL, placeholder = "Drag variables here", width = "100%", connect = c(ns("source_vars"), ns("row_vars")))))
                 ),
                 fluidRow(
-                     column(3, wellPanel(shinyjqui::orderInput(ns("row_vars"), "Rows", items = NULL, placeholder = "Drag variables here", connect = c(ns("source_vars"), ns("col_vars"))))),
-                     column(9, tags$div(style = "overflow:auto", dataTableOutput(ns("table"))))
+                     column(3, wellPanel(shinyjqui::orderInput(ns("row_vars"), "Rows", items = NULL, placeholder = "Drag variables here", width = "100%", connect = c(ns("source_vars"), ns("col_vars"))))),
+                     column(9, tags$div(style = "overflow:auto", DT::dataTableOutput(ns("table"))))
                 )
      )
 }
@@ -119,6 +121,8 @@ pivot_module_UI <- function(id, pivot_vars, sum_vars = ""){
 #' @param df A local dataframe/tibble or tbl_dbi database connection object.
 #' @param pivot_vars A table constructed using the get_pivot_vars function.
 #' @param record_limit The maximum number of rows to bring into R to display. This is a saftely measure. You probably don't want to bring 100 million rows of data into R from a database. Defaults to 1 million.
+#' @param join_table A reactive expression returned from another pivot module. Used to implement linked pivot tables.
+#' @param join_by The primary key variable to perfrorm a filtering join as a string. Must be in both pivot tables to be linked. Only needed if using linked pivot tables.
 #'
 #' @return The server function needed for a pivot table module.
 #' @export
@@ -130,6 +134,8 @@ pivot_module_UI <- function(id, pivot_vars, sum_vars = ""){
 #' }
 #'
 pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_limit = 1e6, join_table = NULL, join_by = NA){
+     stopifnot(is.null(join_table) | is.reactive(join_table))
+
      ns <- NS(ns_id)
      # add reactive values to the pivot vars tibble in a list column.
      # One select input and one T/F filtered indicator per pivot variable.
@@ -142,8 +148,6 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
      # print(pivot_vars)
      # which variable was clicked? (represented as a number from 1 to number of pivot vars)
      varnum <- reactive(match(input$varname, pivot_vars$field))
-
-     # observe(collect(join_table()) %>% head() %>% print())
 
      # # open dialog box when clicked
      observeEvent(input$click_counter, {
@@ -169,13 +173,13 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
 
 
      # maybe use event reactive and update button
-     filtered_data <- reactive({
+     filtered_data <- eventReactive(input$refresh, {
           df %>%
                {if(!is.null(filter_expr)) filter(., !!!filter_expr()) else .} %>%  # conditional pipe
                {if(!is.null(join_table) & !is.na(join_by)) semi_join(., join_table(), by = join_by) else .}
      })
 
-     summarised_data <- reactive({
+     summarised_data <- eventReactive(input$refresh, {
           grp_vars <- rlang::parse_quosures(paste0(c(input$row_vars_order, input$col_vars_order), collapse = ";"))
           filtered_data() %>%
                group_by(!!!grp_vars) %>%
@@ -184,7 +188,7 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
                ungroup()
      })
 
-     local_table <- reactive({
+     local_table <- eventReactive(input$refresh, {
           summarised_data() %>%
                head(record_limit) %>%
                # # filter(between(row_number(), 1, record_limit)) %>%
@@ -197,7 +201,6 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
                     } else .
                }
      })
-
 
      # update button colors based on filtering
      observe({
@@ -217,7 +220,7 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
           } else return(NULL)
      })
 
-     output$table <- renderDataTable(local_table())
+     output$table <- DT::renderDataTable(local_table(), rownames = FALSE)
      output$debug_text <- renderPrint(input$summary_var)
      output$download_data <- downloadHandler(
           filename = function() paste0("data_", Sys.Date(), ".csv"),
