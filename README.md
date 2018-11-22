@@ -1,12 +1,12 @@
 # shinyPivot - R package under construction
-A pivot table module for Shiny built on dplyr
+A pivot table module for Shiny built on dplyr.
 
-This is an R package contianing three functions that allow for easy construction of pivot tables using Shiny.
-It is built on dplyr so it should be able to be used with local dataframes and remote database connections (tbl_dbi objects from the dbplyr package). 
+This is an R package containing three functions that allow for easy construction of pivot tables using Shiny.
+It is built on dplyr so it should work with local dataframes and remote database connections (tbl_dbi objects from the dbplyr package). 
 When a remote database table is used the summarization and filtering take place in the database and only the result is brought into R.
 This allows for pivot tables that work on large datasets housed in fast column oriented databases.
 
-The package contains three functions 
+The package contains three functions:
 - get_pivot_vars
 - pivot_module_UI
 - pivot_module
