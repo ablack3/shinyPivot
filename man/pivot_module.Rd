@@ -21,6 +21,10 @@ pivot_module(input, output, session, ns_id, df, pivot_vars,
 \item{pivot_vars}{A table constructed using the get_pivot_vars function.}
 
 \item{record_limit}{The maximum number of rows to bring into R to display. This is a saftely measure. You probably don't want to bring 100 million rows of data into R from a database. Defaults to 1 million.}
+
+\item{join_table}{A reactive expression returned from another pivot module. Used to implement linked pivot tables.}
+
+\item{join_by}{The primary key variable to perfrorm a filtering join as a string. Must be in both pivot tables to be linked. Only needed if using linked pivot tables.}
 }
 \value{
 The server function needed for a pivot table module.

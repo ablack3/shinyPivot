@@ -1,5 +1,6 @@
 library(shiny)
-options(shiny.reactlog=T) # command f3 + right arrow
+devtools::load_all()
+# options(shiny.reactlog=T) # command f3 + right arrow
 
 # local table
 library(dplyr)

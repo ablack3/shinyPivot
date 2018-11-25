@@ -4,7 +4,7 @@
 \alias{pivot_module_UI}
 \title{Generate the UI for a pivot table}
 \usage{
-pivot_module_UI(id, pivot_vars, sum_vars)
+pivot_module_UI(id, pivot_vars, sum_vars = "")
 }
 \arguments{
 \item{id}{The namespace id as a string. Can be anything but must match the corresponding namespace id of pivot_module.}
