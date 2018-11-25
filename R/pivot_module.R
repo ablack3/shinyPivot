@@ -136,22 +136,30 @@ pivot_module_UI <- function(id, pivot_vars, sum_vars = ""){
 pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_limit = 1e6, join_table = NULL, join_by = NA){
      stopifnot(is.null(join_table) | is.reactive(join_table))
 
+     if(record_limit > 1e6) warning("Allowing variables with more than 1,000,000 levels could result in poor performance")
+
      ns <- NS(ns_id)
+     # Normally when using shiny modules you do not need to pass the namespace id (supplied by the user of the module) to the server function
+     # However since we are creating UI elements in the server function we do need the namespace id
+     # One tricky thing - We only wrap UI ids with the ns() function. Server ids are not wrapped with ns()
+
      # add reactive values to the pivot vars tibble in a list column.
      # One select input and one T/F filtered indicator per pivot variable.
      # Need to add namespace to any newly created input ids. Use ns() when defining new input id
      pivot_vars <- pivot_vars %>%
-          mutate(select_input = purrr::map2(field, levels,
-               ~reactive(selectInput(ns(.x), label = .x, choices = c("All levels" = "", .y), selected = input[[.x]], multiple = T)))) %>%
           mutate(filtered = purrr::map(field, ~reactive({length(input[[.x]]) > 0})))
 
-     # print(pivot_vars)
      # which variable was clicked? (represented as a number from 1 to number of pivot vars)
      varnum <- reactive(match(input$varname, pivot_vars$field))
 
      # # open dialog box when clicked
      observeEvent(input$click_counter, {
-          showModal(modalDialog(easyClose = T, title = "Filter", pivot_vars$select_input[[varnum()]]()))
+          updateSelectizeInput(session, inputId = input$varname, choices = pivot_vars$levels[[varnum()]], server = T, selected = input[[input$varname]])
+          showModal(modalDialog(
+               selectInput(inputId = ns(input$varname), input$varname, choices = character(0), multiple = T),
+               easyClose = T, title = "Filter", footer = modalButton("Close")
+          ))
+          # showModal(modalDialog(pivot_vars$select_input[[varnum()]], easyClose = T, title = "Filter", footer = modalButton("Close")))
      })
 
      filter_expr <- reactive({
@@ -170,7 +178,6 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
           purrr::map2(exp_builder$field, exp_builder$selected_levels, ~rlang::expr(!!as.name(.x) %in% !!.y)) %>%
                purrr::reduce(function(a,b) rlang::expr(!!a & !!b))
      })
-
 
      # maybe use event reactive and update button
      filtered_data <- eventReactive(input$refresh, {
@@ -220,7 +227,14 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
           } else return(NULL)
      })
 
-     output$table <- DT::renderDataTable(local_table(), rownames = FALSE)
+     output$table <- DT::renderDataTable({
+          df <- local_table()
+          df %>%
+               DT::datatable(rownames = FALSE) %>%
+               DT::formatRound(1:ncol(df), digits = 0)
+     })
+
+
      output$debug_text <- renderPrint(input$summary_var)
      output$download_data <- downloadHandler(
           filename = function() paste0("data_", Sys.Date(), ".csv"),
