@@ -7,13 +7,18 @@ library(dplyr)
 df1 <- starwars %>%
      select_if(~is.character(.)|is.numeric(.))
 
-pivot_vars1 <- get_pivot_vars(df1)
+pivot_vars1 <- get_pivot_vars(df1) %>%
+     mutate(description = case_when(
+          field == "name" ~ "The name of the character",
+          field == "height" ~ "The height of the character",
+          T ~ field
+     ))
 
 sum_vars <- c("height", "mass")
 
 ui <- fluidPage(title = "R pivot table", #theme = shinythemes::shinytheme("superhero"),
                 tabsetPanel(
-                     tabPanel(   "Local pivot", pivot_module_UI(id = "id1", pivot_vars = pivot_vars1, sum_vars = sum_vars))
+                     tabPanel("Local pivot", pivot_module_UI(id = "id1", pivot_vars = pivot_vars1, sum_vars = sum_vars))
                 )
 )
 
