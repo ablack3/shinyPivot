@@ -25,7 +25,8 @@ get_pivot_vars <- function(df, max_levels = 1000){
      collect() %>%
      tidyr::gather("field", "n_levels") %>%
      filter(n_levels < max_levels) %>%
-     mutate(levels = purrr::map(field, ~pull(distinct(select(df, .)))))
+     mutate(levels = purrr::map(field, ~pull(distinct(select(df, .))))) %>%
+     mutate(description = field)
 }
 
 
@@ -55,6 +56,8 @@ pivot_module_UI <- function(id, pivot_vars, sum_vars = ""){
                      console.log("{id}_b.length is " + {id}_b.length)
                      var click_counter = 0;
 
+                     //$("#{ns("source_vars")} div").attr("title", "This is the hover-over text");
+
                      function sendDataToShiny(clicked_button) {{
                           click_counter++;
                           var val = clicked_button.getAttribute("data-value");
@@ -64,6 +67,7 @@ pivot_module_UI <- function(id, pivot_vars, sum_vars = ""){
                      }}
 
                      for (var i = 0; i < {id}_b.length; i++) {{
+                          //{id}_b[i].attr("title", "hello tooltip " + i);
                           {id}_b[i].addEventListener("click", function(){{
                               //console.log("you clicked " + this.getAttribute("data-value"));
                               sendDataToShiny(this);
@@ -95,6 +99,7 @@ pivot_module_UI <- function(id, pivot_vars, sum_vars = ""){
                 fluidRow(column(12, wellPanel(
                      shinyjqui::orderInput(ns("source_vars"), "Variables", items = pivot_vars$field, width = "100%", connect = c(ns("row_vars"), ns("col_vars")))
                 ))),
+                tags$p(uiOutput(ns("filter_text"))),
                 fluidRow(
                      column(3,
                             fluidRow(column(6, actionButton(ns("refresh"), "Refresh")),
@@ -133,7 +138,7 @@ pivot_module_UI <- function(id, pivot_vars, sum_vars = ""){
 #'    callModule(pivot_module, id = "id1", ns_id = "id1", df = df1, pivot_vars = pivot_vars1, record_limit = 20)
 #' }
 #'
-pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_limit = 1e6, join_table = NULL, join_by = NA){
+pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_limit = 1e6, join_table = NULL, join_by = NA, show_filter_text = T){
      stopifnot(is.null(join_table) | is.reactive(join_table))
 
      if(record_limit > 1e6) warning("Allowing variables with more than 1,000,000 levels could result in poor performance")
@@ -154,12 +159,12 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
 
      # # open dialog box when clicked
      observeEvent(input$click_counter, {
+
           updateSelectizeInput(session, inputId = input$varname, choices = pivot_vars$levels[[varnum()]], server = T, selected = input[[input$varname]])
-          showModal(modalDialog(
+          showModal(modalDialog(title = "Filter",
                selectInput(inputId = ns(input$varname), input$varname, choices = character(0), multiple = T),
-               easyClose = T, title = "Filter", footer = modalButton("Close")
+               easyClose = T,  pivot_vars$description[[varnum()]], footer = tagList(modalButton("Close"))
           ))
-          # showModal(modalDialog(pivot_vars$select_input[[varnum()]], easyClose = T, title = "Filter", footer = modalButton("Close")))
      })
 
      filter_expr <- reactive({
@@ -175,9 +180,11 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
                mutate(selected_levels = purrr::map(selected_levels, ~paste(.))) %>%
                select(field, selected_levels)
 
-          purrr::map2(exp_builder$field, exp_builder$selected_levels, ~rlang::expr(!!as.name(.x) %in% !!.y)) %>%
+          purrr::map2(exp_builder$field, exp_builder$selected_levels, ~rlang::expr(!!as.name(.x) %in% c(!!.y))) %>%
                purrr::reduce(function(a,b) rlang::expr(!!a & !!b))
      })
+
+     # observe(print(filter_expr()))
 
      # maybe use event reactive and update button
      filtered_data <- eventReactive(input$refresh, {
@@ -234,8 +241,22 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
                DT::formatRound(1:ncol(df), digits = 0)
      })
 
+     output$filter_text <- renderUI({
+          req(filter_expr())
+          req(show_filter_text)
 
-     output$debug_text <- renderPrint(input$summary_var)
+          filter_expr() %>%
+               deparse() %>%
+               paste0(collapse = " ") %>%
+               # stringr::str_replace_all("%in% \"(.*)\"", "%in% \\{\\1\\}") %>%
+               stringr::str_remove_all("%") %>%
+               stringr::str_remove_all("\"") %>%
+               stringr::str_replace_all("(c\\()+", "{") %>%
+               stringr::str_replace_all("(\\))+", "}") %>%
+               stringr::str_replace_all("\\&", "AND") %>%
+               paste("Filter:", .)
+     })
+     output$debug_text <- renderText(input$summary_var)
      output$download_data <- downloadHandler(
           filename = function() paste0("data_", Sys.Date(), ".csv"),
           content = function(file) readr::write_csv(local_table(), file),
