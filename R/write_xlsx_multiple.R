@@ -4,12 +4,12 @@ write_xlsx_multiple <- function (file, ...){
      require(xlsx, quietly = TRUE)
      objects <- list(...)
      fargs <- as.list(match.call(expand.dots = TRUE))
-     objnames <- as.character(fargs)[-c(1, 2)]
+     objnames <- stringr::str_remove_all(as.character(fargs)[-c(1, 2)],  "\\(|\\)")
      nobjects <- length(objects)
      for (i in 1:nobjects) {
           if (i == 1)
-               write.xlsx(objects[[i]], temp_file, sheetName = objnames[i])
-          else write.xlsx(objects[[i]], temp_file, sheetName = objnames[i], append = TRUE)
+               xlsx::write.xlsx(objects[[i]], temp_file, sheetName = objnames[i], row.names = T)
+          else xlsx::write.xlsx(objects[[i]], temp_file, sheetName = objnames[i], row.names = T, append = TRUE)
      }
 
      file.copy(temp_file, file)

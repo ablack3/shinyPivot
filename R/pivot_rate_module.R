@@ -335,7 +335,7 @@ pivot_rate_module <- function(input, output, session, ns_id, numer_df, denom_df,
      output$debug_text <- renderText(denom_pivot_vars)
      output$download_data <- downloadHandler(
           filename = function() paste0("data_", Sys.Date(), ".xlsx"),
-          content = function(file) xlsx.writeMultipleData(file, numer_final(), denom_final(), rate_final(), rate_full())
+          content = function(file) write_xlsx_multiple(file, numer_final(), denom_final(), rate_final(), rate_full())
      )
 } # end server
 

@@ -11,8 +11,8 @@ xlsx.writeMultipleData <- function (file, ...){
      nobjects <- length(objects)
      for (i in 1:nobjects) {
           if (i == 1)
-               write.xlsx(objects[[i]], file, sheetName = objnames[i])
-          else write.xlsx(objects[[i]], file, sheetName = objnames[i], append = TRUE)
+               write.xlsx(objects[[i]], file, sheetName = objnames[i], row.names = F)
+          else write.xlsx(objects[[i]], file, sheetName = objnames[i], row.names = F, append = TRUE)
      }
 }
 
@@ -27,8 +27,10 @@ xlsx.writeMultipleData <- function (file, ...){
 xlsx.writeMultipleData("myworkbook.xlsx", mtcars, Titanic, AirPassengers, state.x77)
 
 
+
 tf <- tempfile(fileext = ".xlsx")
 tf
-xlsx.writeMultipleData(tf, mtcars, Titanic, AirPassengers, state.x77)
+# xlsx.writeMultipleData(tf, mtcars, Titanic, AirPassengers, state.x77)
 
+write_xlsx_multiple(tf, mtcars, Titanic, AirPassengers, state.x77)
 file.copy(tf, "asdf.xlsx")
