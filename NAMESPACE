@@ -3,5 +3,7 @@
 export(get_pivot_vars)
 export(pivot_module)
 export(pivot_module_UI)
+export(pivot_rate_module)
+export(pivot_rate_module_UI)
 import(dplyr)
 importFrom(magrittr,"%>%")

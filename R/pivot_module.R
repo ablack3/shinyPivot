@@ -104,7 +104,8 @@ pivot_module_UI <- function(id, pivot_vars, sum_vars = ""){
                      column(3,
                             fluidRow(column(6, actionButton(ns("refresh"), "Refresh")),
                                      column(6, downloadButton(ns("download_data")))),
-                            fluidRow(column(12, selectInput(ns("summary_var"), "Summarise by:", choices = c("Count", sum_vars), selected = "Count")))
+                            fluidRow(column(9, selectInput(ns("summary_var"), "Summarise by:", choices = c("Count", sum_vars), selected = "Count")),
+                                     column(3, actionButton(ns("plot"), "Plot")))
                      ),
                      column(9, wellPanel(shinyjqui::orderInput(ns("col_vars"), "Columns", items = NULL, placeholder = "Drag variables here", width = "100%", connect = c(ns("source_vars"), ns("row_vars")))))
                 ),
@@ -139,6 +140,8 @@ pivot_module_UI <- function(id, pivot_vars, sum_vars = ""){
 #' }
 #'
 pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_limit = 1e6, join_table = NULL, join_by = NA, show_filter_text = T){
+     require(esquisse)
+
      stopifnot(is.null(join_table) | is.reactive(join_table))
 
      if(record_limit > 1e6) warning("Allowing variables with more than 1,000,000 levels could result in poor performance")
@@ -207,13 +210,32 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
                head(record_limit) %>%
                # # filter(between(row_number(), 1, record_limit)) %>%
                collect() %>%
-               mutate_if(~class(.) == "integer64", as.numeric) %>%
+               mutate_if(~class(.) == "integer64", as.numeric)
+     })
+
+
+     display_table <- eventReactive(input$refresh, {
+          local_table() %>%
                {
                     if(length(input$col_vars_order) > 0 ){
                          tidyr::unite(., "col_var", input$col_vars_order, sep = "_&_") %>%
                               tidyr::spread(col_var, n, fill = 0)
                     } else .
                }
+     })
+
+     observeEvent(input$plot, {
+          data_r <- reactiveValues(data = local_table(), name = "df")
+          callModule(module = esquisserServer, id = "esquisse", data = data_r)
+
+          showModal(modalDialog(tags$div(
+               style = "height: 700px;", # needs to be in fixed height container
+               esquisse::esquisserUI(
+                    id = ns("esquisse"),
+                    header = FALSE, # dont display gadget title
+                    choose_data = FALSE # dont display button to change data
+               )
+          ), easyClose = T))
      })
 
      # update button colors based on filtering
@@ -235,7 +257,7 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
      })
 
      output$table <- DT::renderDataTable({
-          df <- local_table()
+          df <- display_table()
           df %>%
                DT::datatable(rownames = FALSE) %>%
                DT::formatRound(1:ncol(df), digits = 0)
@@ -259,7 +281,7 @@ pivot_module <- function(input, output, session, ns_id, df, pivot_vars, record_l
      output$debug_text <- renderText(input$summary_var)
      output$download_data <- downloadHandler(
           filename = function() paste0("data_", Sys.Date(), ".csv"),
-          content = function(file) readr::write_csv(local_table(), file),
+          content = function(file) readr::write_csv(display_table(), file),
           contentType = "text/csv"
      )
      return(filtered_data)
