@@ -1,6 +1,4 @@
 
-# adding updating of ui draggable elements based on tree selections
-
 library(tidyverse)
 library(shiny)
 library(shinyjs)
@@ -39,7 +37,7 @@ create_varlist <- function(pivot_vars){
 
 ns <- function(x) x
 
-# connect_ids <- c("filter_vars", "group_vars")
+connect_ids <- c("filter_vars", "group_vars")
 
 
 # varlist <- list(
@@ -66,7 +64,6 @@ varlist <- create_varlist(pivot_vars)
 
 ui <- fluidPage(
      useShinyjs(),
-     includeCSS("styles.css"),
 
      tags$p(uiOutput(ns("filter_text"))),
 
@@ -84,14 +81,15 @@ ui <- fluidPage(
                shinyTree::shinyTree("tree", checkbox = T, search = T, theme = "proton", themeIcons = F, unique = T )
           ))),
           column(1,
-                fluidRow(wellPanel(uiOutput("filter_vars"))),
-                fluidRow(wellPanel(uiOutput("group_vars")))
+                 fluidRow(wellPanel(
+                      uiOutput("filter_vars")
+                      # shinyjqui::orderInput("filter_vars", "Filter Variables", items = NULL, width = "100%", connect = connect_ids)
+                 )),
+                 fluidRow(wellPanel(shinyjqui::orderInput("group_vars", "Rows", items = NULL, placeholder = "Drag variables here", width = "100%", connect = connect_ids)))
           ),
           column(9, tags$div(style = "overflow:auto", DT::dataTableOutput("table")))
      ),
-     verbatimTextOutput("show_vars_print"),
-     verbatimTextOutput("filter_vars_print"),
-     verbatimTextOutput("group_vars_print"),
+     verbatimTextOutput("show_vars"),
      verbatimTextOutput("str")
 
 )
@@ -101,19 +99,12 @@ ui <- fluidPage(
 
 server <- function(input, output) {
 
-     # populate with variables selected in tree but not in filter vars
      output$filter_vars <- renderUI({
-          shinyjqui::orderInput("filter_vars", "Filter Variables", items = show_vars(), width = "100%", connect = c("filter_vars", "group_vars"))
+          # cities <- getNearestCities(input$lat, input$long)
+          # checkboxGroupInput("cities", "Choose Cities", cities)
+          shinyjqui::orderInput("filter_vars", "Filter Variables", items = letters[1:5], width = "100%", connect = connect_ids)
      })
 
-     output$group_vars <- renderUI({
-                show_vars()
-             # print("rendering group vars ui")
-             shinyjqui::orderInput("group_vars", "Group Variables", items = NULL, width = "100%", connect = c("filter_vars", "group_vars"))
-     })
-
-
-        # Toggle the var tree
      observeEvent(input$toggleTree, {
           shinyjs::toggle(id = "tree_panel")
      })
@@ -123,8 +114,8 @@ server <- function(input, output) {
           varlist
      })
 
-     # show_vars contains the variables selected in the tree
-     show_vars <- reactive({
+     output$show_vars <- reactive({
+          print("running...")
           l <- input$tree
           res <- character()
           for(i in seq_along(l)) {
@@ -138,15 +129,35 @@ server <- function(input, output) {
           res
      })
 
-     output$show_vars_print <- renderPrint(show_vars())
      output$str <- renderPrint(input$tree)
-     output$filter_vars_print <- renderPrint(input$filter_vars_order)
-     output$group_vars_print <- renderPrint(input$group_vars_order)
-     # output$str <- renderPrint(input$filter_vars_order)
 }
 
 # Run the application
 shinyApp(ui = ui, server = server)
 
+
+
+# library(shiny)
+# library(dqshiny)
+# titles <- c("Section 1", "Section 2", "Section 3")
+# contents <- list("Lorem ipsum..", "Lorem ipsum..", tags$p("Lorem ipsum.."))
+# shinyApp(
+#     ui = fluidPage(
+#         fluidRow(
+#             column(5, dq_accordion("myAccordion", titles, contents, hover = FALSE,
+#                                    style = "border:1px solid red;margin-top: 5px;color: red;"
+#             ), dq_space(),
+#             dq_accordion("myAccordion2", titles, contents,
+#                          bg_color = NULL, options = list(animate = 500, collapsible = TRUE),
+#                          icons = c(open = "hand-point-down", closed = "hand-point-right")
+#             ), dq_space(),
+#             dq_accordion("myAccordion3", titles, contents,
+#                          bg_color = "pink", icons = NULL, sortable = TRUE
+#             ))
+#         )
+#     ), server = function(input, output) {
+#         observeEvent(input$myAccordion, print(input$myAccordion))
+#     }
+# )
 
 
