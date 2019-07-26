@@ -84,7 +84,7 @@ pivot_rate_module_UI <- function(id, pivot_vars, sum_vars = ""){
                     tabPanel("Numerator",   tags$div(style = "overflow:auto", DT::dataTableOutput(ns("numer_table")))),
                     tabPanel("Denominator", tags$div(style = "overflow:auto", DT::dataTableOutput(ns("denom_table")))),
                     tabPanel("Rate",        tags$div(style = "overflow:auto", DT::dataTableOutput(ns("rate_table")))),
-                    tabPanel("Rate full",        tags$div(style = "overflow:auto", DT::dataTableOutput(ns("rate_table_full"))))
+                    tabPanel("Rate full",   tags$div(style = "overflow:auto", DT::dataTableOutput(ns("rate_table_full"))))
                ))
           )
      )
