@@ -6,7 +6,7 @@ library(dplyr)
 
 
 # local table
-denom <- r_data_frame(10000, age(), gender(), year(x = 2015:2017), month(), elig = runif())
+denom   <- r_data_frame(10000, age(), gender(), year(x = 2015:2017), month(), elig = runif())
 numerator <- r_data_frame(1e5, age(), gender(), year(x = 2015:2017), month(), military(), internet_browser(), height(), income())
 
 # using a database
@@ -32,8 +32,8 @@ ui <- fluidPage(title = "R pivot rate table", #theme = shinythemes::shinytheme("
 )
 
 server <- function(input, output, session){
-     callModule(pivot_rate_module, id = "id1", ns_id = "id1", numer_df = numerator,    denom_df = denom,    pivot_vars = pivot_vars1, record_limit = 1e6)
-     callModule(pivot_rate_module, id = "id2", ns_id = "id2", numer_df = numerator_db, denom_df = denom_db, pivot_vars = pivot_vars1, record_limit = 1e6)
+     callModule(pivot_rate_module, id = "id1", ns_id = "id1", numer_df = numerator,    denom_df = denom,    pivot_vars = pivot_vars1, record_limit = 1e6, denom_var = "elig")
+     callModule(pivot_rate_module, id = "id2", ns_id = "id2", numer_df = numerator_db, denom_df = denom_db, pivot_vars = pivot_vars1, record_limit = 1e6, denom_var = "elig")
 } # end server
 
 shinyApp(ui = ui, server = server)
