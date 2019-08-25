@@ -1,5 +1,7 @@
 library(shiny)
 library(here)
+library(shinyjs)
+library(shinyTree)
 devtools::load_all()
 # options(shiny.reactlog=T) # command f3 + right arrow
 # source(here("dev/tree_ui/pivot_module_tree.R"))

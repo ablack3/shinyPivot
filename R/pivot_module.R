@@ -19,15 +19,15 @@
 #' df2 <- tbl(con, "star_wars")
 #' pivot_vars2 <- get_pivot_vars(df2)
 #'
-get_pivot_vars <- function(df, max_levels = 1000){
-     df %>%
-     summarise_all(n_distinct) %>%
-     collect() %>%
-     tidyr::gather("field", "n_levels") %>%
-     filter(n_levels < max_levels) %>%
-     mutate(levels = purrr::map(field, ~pull(distinct(select(df, .))))) %>%
-     mutate(description = field)
-}
+# get_pivot_vars <- function(df, max_levels = 1000){
+#      df %>%
+#      summarise_all(n_distinct) %>%
+#      collect() %>%
+#      tidyr::gather("field", "n_levels") %>%
+#      filter(n_levels < max_levels) %>%
+#      mutate(levels = purrr::map(field, ~pull(distinct(select(df, .))))) %>%
+#      mutate(description = field)
+# }
 
 
 #' Generate the UI for a pivot table

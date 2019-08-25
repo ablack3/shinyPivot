@@ -34,10 +34,10 @@ get_pivot_vars <- function(df, max_levels = 1000){
 create_varlist <- function(pivot_vars){
      tmp <- select(pivot_vars, group, field, field_display_name)
      tmp %>%
-          nest(-group) %>%
+          tidyr::nest(-group) %>%
           pull(data) %>%
-          map(function(df){
-               map(df$field, ~structure("", varname = .)) %>%
+          purrr::map(function(df){
+               purrr::map(df$field, ~structure("", varname = .)) %>%
                     purrr::set_names(df$field_display_name)
           }) %>%
           purrr::set_names(unique(tmp$group))
